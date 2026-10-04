@@ -948,6 +948,36 @@ function ChatCardNodeInner({
             )}
             {(card.queue?.length ?? 0) > 0 && (
                 <div className="mb-1.5 space-y-1">
+                    <div className="flex items-center justify-between px-0.5 text-[10px] font-medium text-amber-500/90">
+                        <span>⏳ {card.queue!.length} queued</span>
+                        <button
+                            type="button"
+                            className="nodrag text-amber-500/80 hover:text-amber-500 hover:underline"
+                            title="Cancel all queued messages and return text to composer"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                void (async () => {
+                                    const res = await fetch(`/sessions/${id}/queue/clear`, { method: 'POST' }).catch(() => null);
+                                    if (res?.ok) {
+                                        const d = (await res.json()) as { followUp?: string[] };
+                                        const dropped = d.followUp ?? card.queue ?? [];
+                                        useCanvasStore.getState().updateCard(id, { queue: [] });
+                                        if (dropped.length) {
+                                            useCanvasStore.getState().queueToDraft(id, dropped);
+                                        }
+                                    } else {
+                                        const dropped = [...(card.queue ?? [])];
+                                        useCanvasStore.getState().updateCard(id, { queue: [] });
+                                        if (dropped.length) {
+                                            useCanvasStore.getState().queueToDraft(id, dropped);
+                                        }
+                                    }
+                                })();
+                            }}
+                        >
+                            Cancel queue
+                        </button>
+                    </div>
                     {card.queue!.map((q, i) => (
                         <div
                             key={i}
